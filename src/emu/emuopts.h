@@ -66,6 +66,7 @@ enum
 	OPTION_PRIORITY_PARENT_INI,
 	OPTION_PRIORITY_DRIVER_INI
 };
+#define OPTION_PRIORITY_SWITCHRES	OPTION_PRIORITY_CMDLINE -1
 
 // core options
 #define OPTION_SYSTEMNAME			core_options::unadorned(0)
@@ -95,6 +96,8 @@ enum
 #define OPTION_SNAPSHOT_DIRECTORY	"snapshot_directory"
 #define OPTION_DIFF_DIRECTORY		"diff_directory"
 #define OPTION_COMMENT_DIRECTORY	"comment_directory"
+//MKCHAMP - DECLARING THE DIRECTORY OPTION FOR HIGH SCORES TO BE SAVED TO
+#define OPTION_HISCORE_DIRECTORY	"hiscore_directory"
 
 // core state/playback options
 #define OPTION_STATE				"state"
@@ -114,6 +117,7 @@ enum
 #define OPTION_FRAMESKIP			"frameskip"
 #define OPTION_SECONDS_TO_RUN		"seconds_to_run"
 #define OPTION_THROTTLE				"throttle"
+#define OPTION_SYNCREFRESH			"syncrefresh"
 #define OPTION_SLEEP				"sleep"
 #define OPTION_SPEED				"speed"
 #define OPTION_REFRESHSPEED			"refreshspeed"
@@ -197,6 +201,35 @@ enum
 
 #define OPTION_CONFIRM_QUIT			"confirm_quit"
 
+/* MKChamp Hiscore Diff Options */
+#define OPTION_DISABLE_HISCORE_PATCH		"disable_hiscore_patch"
+#define OPTION_DISABLE_NAGSCREEN_PATCH		"disable_nagscreen_patch"
+#define OPTION_DISABLE_LOADING_PATCH		"disable_loading_patch"
+
+/* Switchres Options */
+#define OPTION_MODELINE                        "modeline"
+#define OPTION_MONITOR                         "monitor"
+#define OPTION_MONITOR_CONNECTOR               "monitor_connector"
+#define OPTION_MONITOR_ORIENTATION             "monitor_orientation"
+#define OPTION_MONITOR_ASPECT                  "monitor_aspect"
+#define OPTION_MONITOR_DEBUG                   "monitor_debug"
+#define OPTION_MONITOR_DOUBLESCAN              "monitor_doublescan"
+#define OPTION_MONITOR_DOTCLOCK                "monitor_dotclock"
+#define OPTION_MONITOR_YMIN                    "monitor_ymin"
+#define OPTION_CLEANSTRETCH                    "cleanstretch"
+#define OPTION_CHANGERES                       "changeres"
+#define OPTION_REDRAW                          "redraw"
+#define OPTION_MONITOR_SPECS0                  "monitor_specs0"
+#define OPTION_MONITOR_SPECS1                  "monitor_specs1"
+#define OPTION_MONITOR_SPECS2                  "monitor_specs2"
+#define OPTION_MONITOR_SPECS3                  "monitor_specs3"
+#define OPTION_MONITOR_SPECS4                  "monitor_specs4"
+#define OPTION_MONITOR_SPECS5                  "monitor_specs5"
+#define OPTION_MONITOR_SPECS6                  "monitor_specs6"
+#define OPTION_MONITOR_SPECS7                  "monitor_specs7"
+#define OPTION_MAGIC_RESOLUTION                "magic_resolution"
+#define OPTION_POWERSTRIP                      "powerstrip"		
+
 
 //**************************************************************************
 //  TYPE DEFINITIONS
@@ -249,6 +282,9 @@ public:
 	const char *snapshot_directory() const { return value(OPTION_SNAPSHOT_DIRECTORY); }
 	const char *diff_directory() const { return value(OPTION_DIFF_DIRECTORY); }
 	const char *comment_directory() const { return value(OPTION_COMMENT_DIRECTORY); }
+	
+	// MKCHAMP - hiscore directory options
+	const char *hiscore_directory() const { return value(OPTION_HISCORE_DIRECTORY); }
 
 	// core state/playback options
 	const char *state() const { return value(OPTION_STATE); }
@@ -268,6 +304,7 @@ public:
 	int frameskip() const { return int_value(OPTION_FRAMESKIP); }
 	int seconds_to_run() const { return int_value(OPTION_SECONDS_TO_RUN); }
 	bool throttle() const { return bool_value(OPTION_THROTTLE); }
+	bool sync_refresh() const { return bool_value(OPTION_SYNCREFRESH); }
 	bool sleep() const { return bool_value(OPTION_SLEEP); }
 	float speed() const { return float_value(OPTION_SPEED); }
 	bool refresh_speed() const { return bool_value(OPTION_REFRESHSPEED); }
@@ -346,8 +383,37 @@ public:
 	bool skip_gameinfo() const { return bool_value(OPTION_SKIP_GAMEINFO); }
 	const char *ui_font() const { return value(OPTION_UI_FONT); }
 	const char *ram_size() const { return value(OPTION_RAMSIZE); }
+	
+	// MKChamp Hiscore Diff options 
+	bool disable_hiscore_patch() const { return bool_value(OPTION_DISABLE_HISCORE_PATCH); }
+	bool disable_nagscreen_patch() const { return bool_value(OPTION_DISABLE_NAGSCREEN_PATCH); }
+	bool disable_loading_patch() const { return bool_value(OPTION_DISABLE_LOADING_PATCH); }
 
 	bool confirm_quit() const { return bool_value(OPTION_CONFIRM_QUIT); }
+	
+	// Switchres options
+	bool modeline() const { return bool_value(OPTION_MODELINE); };
+	const char *monitor() const { return value(OPTION_MONITOR); };
+	const char *monitor_connector() const { return value(OPTION_MONITOR_CONNECTOR); };
+	const char *monitor_orientation() const { return value(OPTION_MONITOR_ORIENTATION); };
+	const char *monitor_aspect() const { return value(OPTION_MONITOR_ASPECT); };
+	const char *monitor_debug() const { return value(OPTION_MONITOR_DEBUG); };
+	bool monitor_doublescan() const { return bool_value(OPTION_MONITOR_DOUBLESCAN); };
+	const char *monitor_dotclock() const { return value(OPTION_MONITOR_DOTCLOCK); };
+	const char *monitor_ymin() const { return value(OPTION_MONITOR_YMIN); };
+	bool cleanstretch() const { return bool_value(OPTION_CLEANSTRETCH); };
+	bool changeres() const { return bool_value(OPTION_CHANGERES); };
+	const char *redraw() const { return value(OPTION_REDRAW); };
+	const char *monitor_specs0() const { return value(OPTION_MONITOR_SPECS0); };
+	const char *monitor_specs1() const { return value(OPTION_MONITOR_SPECS1); };
+	const char *monitor_specs2() const { return value(OPTION_MONITOR_SPECS2); };
+	const char *monitor_specs3() const { return value(OPTION_MONITOR_SPECS3); };
+	const char *monitor_specs4() const { return value(OPTION_MONITOR_SPECS4); };
+	const char *monitor_specs5() const { return value(OPTION_MONITOR_SPECS5); };
+	const char *monitor_specs6() const { return value(OPTION_MONITOR_SPECS6); };
+	const char *monitor_specs7() const { return value(OPTION_MONITOR_SPECS7); };
+	const char *magic_resolution() const { return value(OPTION_MAGIC_RESOLUTION); };
+	bool powerstrip() const { return bool_value(OPTION_POWERSTRIP); };
 
 	// device-specific options
 	const char *device_option(device_image_interface &image);

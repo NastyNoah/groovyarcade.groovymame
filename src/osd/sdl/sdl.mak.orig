@@ -308,8 +308,7 @@ OSDOBJS = \
 	$(SDLOBJ)/drawsdl.o \
 	$(SDLOBJ)/window.o \
 	$(SDLOBJ)/output.o \
-	$(SDLOBJ)/watchdog.o \
-	$(SDLOBJ)/switchres.o
+	$(SDLOBJ)/watchdog.o
 
 # Add SDL2.0 support
 

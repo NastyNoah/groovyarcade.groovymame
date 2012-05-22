@@ -77,7 +77,9 @@
 
 sdl_window_info *sdl_window_list;
 
-
+extern bool switchres_resolution_reset(running_machine &machine, sdl_window_info *window);
+extern bool switchres_resolution_change(running_machine &machine, sdl_window_info *window, int width, int height);
+ 
 //============================================================
 //  LOCAL VARIABLES
 //============================================================
@@ -308,6 +310,7 @@ static void sdlwindow_exit(running_machine &machine)
 	{
 		sdl_window_info *temp = sdl_window_list;
 		sdl_window_list = temp->next;
+		switchres_resolution_reset(machine, temp);
 		sdlwindow_video_window_destroy(machine, temp);
 	}
 
@@ -623,8 +626,18 @@ static void sdlwindow_update_cursor_state(running_machine &machine, sdl_window_i
 	}
 
 #else
+//ves Hack for wii-lightguns: they stop working with a grabbed mouse; even a ShowCursor(SDL_DISABLE) already
+//does this. To make the cursor disappear, we'll just set an empty cursor image.
+	unsigned char data[]={0,0,0,0,0,0,0,0};
+	SDL_Cursor *c;
+	c=SDL_CreateCursor(data, data, 8, 8, 0, 0);
+	SDL_SetCursor(c);
+
+//ves
 	// do not do mouse capture if the debugger's enabled to avoid
 	// the possibility of losing control
+//ves
+/*
 	if (!(machine.debug_flags & DEBUG_FLAG_OSD_ENABLED))
 	{
 		if ( window->fullscreen || sdlinput_should_hide_mouse(machine) )
@@ -644,6 +657,9 @@ static void sdlwindow_update_cursor_state(running_machine &machine, sdl_window_i
 			}
 		}
 	}
+*/
+//ves
+
 #endif
 }
 
@@ -802,7 +818,7 @@ static void sdlwindow_video_window_destroy(running_machine &machine, sdl_window_
 //============================================================
 
 #if SDLMAME_SDL2
-static void pick_best_mode(sdl_window_info *window, int *fswidth, int *fsheight)
+void pick_best_mode(sdl_window_info *window, int *fswidth, int *fsheight)
 {
 	int minimum_width, minimum_height, target_width, target_height;
 	int i;
@@ -869,7 +885,7 @@ static void pick_best_mode(sdl_window_info *window, int *fswidth, int *fsheight)
 	}
 }
 #else
-static void pick_best_mode(sdl_window_info *window, int *fswidth, int *fsheight)
+void pick_best_mode(sdl_window_info *window, int *fswidth, int *fsheight)
 {
 	int minimum_width, minimum_height, target_width, target_height;
 	int i;
@@ -965,7 +981,12 @@ void sdlwindow_video_window_update(running_machine &machine, sdl_window_info *wi
 
 		// see if the games video mode has changed
 		window->target->compute_minimum_size(tempwidth, tempheight);
-		if (tempwidth != window->minwidth || tempheight != window->minheight)
+		if (video_config.switchres && window->fullscreen && machine.options().changeres())
+		{
+			if (machine.switchRes.resolution.changeres) 
+				switchres_resolution_change(machine, window, tempwidth, tempheight);
+		}
+		else if (tempwidth != window->minwidth || tempheight != window->minheight)
 		{
 			window->minwidth = tempwidth;
 			window->minheight = tempheight;
@@ -981,7 +1002,7 @@ void sdlwindow_video_window_update(running_machine &machine, sdl_window_info *wi
 			}
 		}
 
-		if (video_config.waitvsync && video_config.syncrefresh)
+		if (video_config.waitvsync || video_config.syncrefresh)
 			event_wait_ticks = osd_ticks_per_second(); // block at most a second
 		else
 			event_wait_ticks = 0;
@@ -1007,6 +1028,20 @@ void sdlwindow_video_window_update(running_machine &machine, sdl_window_info *wi
 	}
 }
 
+//============================================================
+//  sdlwindow_video_window_update_hi
+//  (main thread)
+//============================================================
+
+void sdlwindow_video_window_update_hi(running_machine &machine, sdl_window_info *window)
+{
+
+	ASSERT_MAIN_THREAD();
+
+	// adjust the cursor state
+	sdlwindow_update_cursor_state(machine, window);
+}
+//============================================================
 
 //============================================================
 //  set_starting_view

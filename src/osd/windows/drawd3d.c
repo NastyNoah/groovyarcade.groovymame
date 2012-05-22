@@ -134,15 +134,23 @@ static const line_aa_step line_aa_4step[] =
 //  INLINES
 //============================================================
 
-INLINE BOOL GetClientRectExceptMenu(HWND hWnd, PRECT pRect, BOOL fullscreen)
+INLINE BOOL GetClientRectExceptMenu(win_window_info *window, PRECT pRect)
 {
 	static HMENU last_menu;
 	static RECT last_rect;
 	static RECT cached_rect;
+	HWND hWnd = window->hwnd;
+	ModeLine *modeline = window->machine().switchRes.modeLine;
 	HMENU menu = GetMenu(hWnd);
 	BOOL result = GetClientRect(hWnd, pRect);
 
-	if (!fullscreen || !menu)
+	if (modeline && modeline->custom)
+	{
+		pRect->right = modeline->hactive;
+		pRect->bottom = modeline->vactive;
+	}
+
+	if (!window->fullscreen || !menu)
 		return result;
 
 	// to avoid flicker use cache if we can use
@@ -525,12 +533,18 @@ static render_primitive_list *drawd3d_window_get_primitives(win_window_info *win
 {
 	d3d_info *d3d = (d3d_info *)window->drawdata;
 	RECT client;
+	ModeLine *modeline = window->machine().switchRes.modeLine;
+	ModeLine *bestmode = &window->machine().switchRes.bestMode;
 
-	GetClientRectExceptMenu(window->hwnd, &client, window->fullscreen);
+	GetClientRectExceptMenu(window, &client);
 	if (rect_width(&client) > 0 && rect_height(&client) > 0)
 	{
-		window->target->set_bounds(rect_width(&client), rect_height(&client), winvideo_monitor_get_aspect(window->monitor));
-		window->target->set_max_update_rate((d3d->refresh == 0) ? d3d->origmode.RefreshRate : d3d->refresh);
+		float aspect_corrector = 1.0f;
+		if (modeline && modeline->custom) aspect_corrector =
+			((float)bestmode->a_width / (float)bestmode->a_height) / ((float)modeline->hactive / (float)modeline->vactive);
+
+		window->target->set_bounds(rect_width(&client), rect_height(&client), winvideo_monitor_get_aspect(window->monitor)*aspect_corrector);
+ 		window->target->set_max_update_rate((d3d->refresh == 0) ? d3d->origmode.RefreshRate : d3d->refresh);
 	}
 	return &window->target->get_primitives();
 }
@@ -1161,6 +1175,7 @@ static int config_adapter_mode(win_window_info *window)
 	d3d_adapter_identifier identifier;
 	d3d_info *d3d = (d3d_info *)window->drawdata;
 	HRESULT result;
+	ModeLine *bestmode = &window->machine().switchRes.bestMode;
 
 	// choose the monitor number
 	d3d->adapter = get_adapter_for_monitor(d3d, window->monitor);
@@ -1188,7 +1203,7 @@ static int config_adapter_mode(win_window_info *window)
 		RECT client;
 
 		// bounds are from the window client rect
-		GetClientRectExceptMenu(window->hwnd, &client, window->fullscreen);
+		GetClientRectExceptMenu(window, &client);
 		d3d->width = client.right - client.left;
 		d3d->height = client.bottom - client.top;
 
@@ -1219,8 +1234,15 @@ static int config_adapter_mode(win_window_info *window)
 		d3d->refresh = d3d->origmode.RefreshRate;
 
 		// if we're allowed to switch resolutions, override with something better
-		if (video_config.switchres)
-			pick_best_mode(window);
+		if (video_config.switchres) {
+			if (bestmode && bestmode->a_width == 0) {
+				pick_best_mode(window);
+			} else {
+				d3d->width = bestmode->a_width;
+				d3d->height = bestmode->a_height;
+				d3d->refresh = bestmode->a_vfreq;
+			}
+		}
 	}
 
 	// see if we can handle the device type
@@ -1324,20 +1346,12 @@ static void pick_best_mode(win_window_info *window)
 		if (mode.Width < minwidth || mode.Height < minheight)
 			size_score *= 0.01f;
 
-		// if mode is smaller than we'd like, it only scores up to 0.1
-		if (mode.Width < target_width || mode.Height < target_height)
-			size_score *= 0.1f;
-
 		// if we're looking for a particular mode, that's a winner
 		if (mode.Width == window->maxwidth && mode.Height == window->maxheight)
 			size_score = 2.0f;
 
 		// compute refresh score
 		refresh_score = 1.0f / (1.0f + fabs((double)mode.RefreshRate - target_refresh));
-
-		// if refresh is smaller than we'd like, it only scores up to 0.1
-		if ((double)mode.RefreshRate < target_refresh)
-			refresh_score *= 0.1f;
 
 		// if we're looking for a particular refresh, make sure it matches
 		if (mode.RefreshRate == window->refresh)
@@ -1372,7 +1386,7 @@ static int update_window_size(win_window_info *window)
 	RECT client;
 
 	// get the current window bounds
-	GetClientRectExceptMenu(window->hwnd, &client, window->fullscreen);
+	GetClientRectExceptMenu(window, &client);
 
 	// if we have a device and matching width/height, nothing to do
 	if (d3d->device != NULL && rect_width(&client) == d3d->width && rect_height(&client) == d3d->height)

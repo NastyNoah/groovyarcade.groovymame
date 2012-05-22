@@ -96,7 +96,6 @@ static win_monitor_info *pick_monitor(windows_options &options, int index);
 
 static void check_osd_inputs(running_machine &machine);
 
-static void extract_video_config(running_machine &machine);
 static float get_aspect(const char *defdata, const char *data, int report_error);
 static void get_resolution(const char *defdata, const char *data, win_window_config *config, int report_error);
 
@@ -219,6 +218,28 @@ void windows_osd_interface::update(bool skip_redraw)
 	if (!skip_redraw)
 		for (win_window_info *window = win_window_list; window != NULL; window = window->next)
 			winwindow_video_window_update(window);
+
+	// poll the joystick values here
+	winwindow_process_events(machine(), TRUE);
+	wininput_poll(machine());
+	check_osd_inputs(machine());
+}
+
+//============================================================
+//  MKCHAMP - BELOW IS THE NEW SUB CALLED FROM emu/video.c. ONLY
+//  DIFFERENCE BETWEEN THIS SUB AND osd_update IS IT CALLS NEW SUB CALLED winwindow_video_window_update_hi
+//  INSTEAD OF winwindow_video_window_update (located in osd/windows/window.c)
+//============================================================
+
+void windows_osd_interface::update_hi(bool skip_redraw)
+{
+	// ping the watchdog on each update
+	winmain_watchdog_ping();
+
+	// if we're not skipping this redraw, update all windows
+	if (!skip_redraw)
+		for (win_window_info *window = win_window_list; window != NULL; window = window->next)
+			winwindow_video_window_update_hi(window);
 
 	// poll the joystick values here
 	winwindow_process_events(machine(), TRUE);
@@ -382,7 +403,7 @@ static void check_osd_inputs(running_machine &machine)
 //  extract_video_config
 //============================================================
 
-static void extract_video_config(running_machine &machine)
+void extract_video_config(running_machine &machine)
 {
 	windows_options &options = downcast<windows_options &>(machine.options());
 	const char *stemp;
@@ -424,7 +445,7 @@ static void extract_video_config(running_machine &machine)
 		video_config.mode = VIDEO_MODE_GDI;
 	}
 	video_config.waitvsync     = options.wait_vsync();
-	video_config.syncrefresh   = options.sync_refresh();
+	video_config.syncrefresh   = machine.options().sync_refresh();
 	video_config.triplebuf     = options.triple_buffer();
 	video_config.switchres     = options.switch_res();
 

@@ -68,7 +68,6 @@
 #define WINOPTION_KEEPASPECT			"keepaspect"
 #define WINOPTION_PRESCALE				"prescale"
 #define WINOPTION_WAITVSYNC				"waitvsync"
-#define WINOPTION_SYNCREFRESH			"syncrefresh"
 #define WINOPTION_MENU					"menu"
 
 // DirectDraw-specific options
@@ -184,7 +183,6 @@ public:
 	bool keep_aspect() const { return bool_value(WINOPTION_KEEPASPECT); }
 	int prescale() const { return int_value(WINOPTION_PRESCALE); }
 	bool wait_vsync() const { return bool_value(WINOPTION_WAITVSYNC); }
-	bool sync_refresh() const { return bool_value(WINOPTION_SYNCREFRESH); }
 	bool menu() const { return bool_value(WINOPTION_MENU); }
 
 	// DirectDraw-specific options
@@ -325,6 +323,8 @@ public:
 
 private:
 	static void osd_exit(running_machine &machine);
+	//MKChamp - Declaring hi subroutine
+ 	virtual void update_hi(bool skip_redraw);
 
 	static const int DEFAULT_FONT_HEIGHT = 200;
 };

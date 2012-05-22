@@ -301,7 +301,9 @@ OSDOBJS = \
 	$(WINOBJ)/video.o \
 	$(WINOBJ)/window.o \
 	$(WINOBJ)/winmenu.o \
-	$(WINOBJ)/winmain.o
+	$(WINOBJ)/winmain.o \
+	$(WINOBJ)/switchres.o \
+	$(WINOBJ)/pstrip.o
 
 ifdef USE_NETWORK
 OSDOBJS += \

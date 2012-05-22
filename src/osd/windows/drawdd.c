@@ -432,7 +432,7 @@ static int drawdd_window_draw(win_window_info *window, HDC dc, int update)
 	if (result != DD_OK) mame_printf_verbose("DirectDraw: Error %08X unlocking blit surface\n", (int)result);
 
 	// sync to VBLANK
-	if ((video_config.waitvsync || video_config.syncrefresh) && window->machine().video().throttled() && (!window->fullscreen || dd->back == NULL))
+	if (video_config.waitvsync && window->machine().video().throttled() && (!window->fullscreen || dd->back == NULL))
 	{
 		result = IDirectDraw7_WaitForVerticalBlank(dd->ddraw, DDWAITVB_BLOCKBEGIN, NULL);
 		if (result != DD_OK) mame_printf_verbose("DirectDraw: Error %08X waiting for VBLANK\n", (int)result);
@@ -847,12 +847,20 @@ static void compute_blit_surface_size(win_window_info *window)
 	INT32 newwidth, newheight;
 	int xscale, yscale;
 	RECT client;
+	ModeLine *modeline = window->machine().switchRes.modeLine;
+	ModeLine *bestmode = &window->machine().switchRes.bestMode;
 
 	// start with the minimum size
 	window->target->compute_minimum_size(newwidth, newheight);
 
 	// get the window's client rectangle
 	GetClientRect(window->hwnd, &client);
+
+	if (modeline && modeline->custom)
+	{
+		client.right = modeline->hactive;
+		client.bottom = modeline->vactive;
+	}
 
 	// hardware stretch case: apply prescale
 	if (video_config.hwstretch)
@@ -879,7 +887,11 @@ static void compute_blit_surface_size(win_window_info *window)
 		if (video_config.keepaspect)
 		{
 			win_monitor_info *monitor = winwindow_video_window_monitor(window, NULL);
-			window->target->compute_visible_area(target_width, target_height, winvideo_monitor_get_aspect(monitor), window->target->orientation(), target_width, target_height);
+			float aspect_corrector = 1.0f;
+			if (modeline && modeline->custom) aspect_corrector =
+				((float)bestmode->a_width / (float)bestmode->a_height) / ((float)modeline->hactive / (float)modeline->vactive);
+	
+			window->target->compute_visible_area(target_width, target_height, winvideo_monitor_get_aspect(monitor)*aspect_corrector, window->target->orientation(), target_width, target_height);
 			desired_aspect = (float)target_width / (float)target_height;
 		}
 
@@ -974,7 +986,8 @@ static void blit_to_primary(win_window_info *window, int srcwidth, int srcheight
 	RECT clear, outer, dest, source;
 	INT32 dstwidth, dstheight;
 	HRESULT result;
-
+	ModeLine *modeline = window->machine().switchRes.modeLine;
+	ModeLine *bestmode = &window->machine().switchRes.bestMode;
 	// compute source rect
 	source.left = source.top = 0;
 	source.right = srcwidth;
@@ -997,7 +1010,11 @@ static void blit_to_primary(win_window_info *window, int srcwidth, int srcheight
 	// compute outer rect -- full screen version
 	else
 	{
-		calc_fullscreen_margins(window, dd->primarydesc.dwWidth, dd->primarydesc.dwHeight, &outer);
+		if (modeline && modeline->custom)
+			calc_fullscreen_margins(window, modeline->hactive, modeline->vactive, &outer);
+		else
+			calc_fullscreen_margins(window, dd->primarydesc.dwWidth, dd->primarydesc.dwHeight, &outer);
+ 
 	}
 
 	// if we're respecting the aspect ratio, we need to adjust to fit
@@ -1024,7 +1041,10 @@ static void blit_to_primary(win_window_info *window, int srcwidth, int srcheight
 	else if (video_config.keepaspect)
 	{
 		// compute the appropriate visible area
-		window->target->compute_visible_area(rect_width(&outer), rect_height(&outer), winvideo_monitor_get_aspect(monitor), window->target->orientation(), dstwidth, dstheight);
+		float aspect_corrector = 1.0f;
+		if (modeline && modeline->custom) aspect_corrector = ((float)bestmode->a_width / (float)bestmode->a_height) / ((float)modeline->hactive / (float)modeline->vactive);
+		window->target->compute_visible_area(rect_width(&outer), rect_height(&outer), winvideo_monitor_get_aspect(monitor)*aspect_corrector, window->target->orientation(), dstwidth, dstheight);
+
 	}
 
 	// center within
@@ -1105,7 +1125,7 @@ static int config_adapter_mode(win_window_info *window)
 	DDDEVICEIDENTIFIER2 identifier;
 	dd_info *dd = (dd_info *)window->drawdata;
 	HRESULT result;
-
+	ModeLine *bestmode = &window->machine().switchRes.bestMode;
 	// choose the monitor number
 	get_adapter_for_monitor(dd, window->monitor);
 
@@ -1146,8 +1166,15 @@ static int config_adapter_mode(win_window_info *window)
 		dd->refresh = dd->origmode.dwRefreshRate;
 
 		// if we're allowed to switch resolutions, override with something better
-		if (video_config.switchres)
-			pick_best_mode(window);
+		if (video_config.switchres) {
+			if (bestmode && bestmode->a_width == 0) {
+				pick_best_mode(window);
+			} else {
+				dd->width = bestmode->a_width;
+				dd->height = bestmode->a_height;
+				dd->refresh = bestmode->a_vfreq;
+			}
+		}
 	}
 
 	// release the DirectDraw object
@@ -1255,10 +1282,6 @@ static HRESULT WINAPI enum_modes_callback(LPDDSURFACEDESC2 desc, LPVOID context)
 
 	// compute refresh score
 	refresh_score = 1.0f / (1.0f + fabs((double)desc->dwRefreshRate - einfo->target_refresh));
-
-	// if refresh is smaller than we'd like, it only scores up to 0.1
-	if ((double)desc->dwRefreshRate < einfo->target_refresh)
-		refresh_score *= 0.1f;
 
 	// if we're looking for a particular refresh, make sure it matches
 	if (desc->dwRefreshRate == einfo->window->refresh)

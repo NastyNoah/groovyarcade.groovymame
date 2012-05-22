@@ -91,6 +91,7 @@ public:
 	int speed_factor() const { return m_speed; }
 	int frameskip() const { return m_auto_frameskip ? -1 : m_frameskip_level; }
 	bool throttled() const { return m_throttle; }
+	bool sync_refresh() const { return m_syncrefresh; }
 	bool fastforward() const { return m_fastforward; }
 	bool is_recording() const { return (m_mngfile != NULL || m_avifile != NULL); }
 
@@ -102,6 +103,9 @@ public:
 
 	// render a frame
 	void frame_update(bool debug = false);
+	
+	// MKCHAMP - DECLARING THE NEW video_frame_update_hi SUB
+  void frame_update_hi(bool debug = false);
 
 	// current speed helpers
 	astring &speed_text(astring &string);
@@ -166,6 +170,7 @@ private:
 
 	// configuration
 	bool				m_throttle;					// flag: TRUE if we're currently throttled
+	bool				m_syncrefresh;				// flag: TRUE if we're currently refresh-synced
 	bool				m_fastforward;				// flag: TRUE if we're currently fast-forwarding
 	UINT32				m_seconds_to_run;			// number of seconds to run before quitting
 	bool				m_auto_frameskip;			// flag: TRUE if we're automatically frameskipping
@@ -205,6 +210,5 @@ private:
 
 // assert if any pixels in the given bitmap contain an invalid palette index
 bool video_assert_out_of_range_pixels(running_machine &machine, bitmap_ind16 &bitmap);
-
 
 #endif	/* __VIDEO_H__ */

@@ -1439,7 +1439,7 @@ void cli_frontend::execute_commands(const char *exename)
 
 void cli_frontend::display_help()
 {
-	mame_printf_info("%s v%s - %s\n%s\n\n", emulator_info::get_applongname(),build_version,emulator_info::get_fulllongname(),emulator_info::get_copyright_info());
+	mame_printf_info("%s v%s SwitchRes Patch %s - %s\n%s\n\n", emulator_info::get_applongname(),build_version,emulator_info::get_fulllongname(),SWITCHRES_VERSION,emulator_info::get_copyright_info());
 	mame_printf_info("%s\n", emulator_info::get_disclaimer());
 	emulator_info::printf_usage(emulator_info::get_appname(),emulator_info::get_gamenoun());
 	mame_printf_info("\n\n"

@@ -1204,10 +1204,54 @@ const render_screen_list &render_target::view_screens(int viewindex)
 void render_target::compute_visible_area(INT32 target_width, INT32 target_height, float target_pixel_aspect, int target_orientation, INT32 &visible_width, INT32 &visible_height)
 {
 	float width, height;
-	float scale;
+	float xscale, yscale;
+	INT32 iwidth, iheight;
+	
+	compute_minimum_size( iwidth, iheight);
+	
+	// Check for resolution changes
+	if (m_manager.machine().switchRes.resolution.width != 0) {
+		if (m_manager.machine().switchRes.resolution.width != iwidth ||
+		  m_manager.machine().switchRes.resolution.height != iheight)
+		{
+			mame_printf_verbose("SwitchRes: [%d] Resolution change from %dx%d to %dx%d\n",
+				m_manager.machine().switchRes.cs.changeres,
+				m_manager.machine().switchRes.resolution.width,
+				m_manager.machine().switchRes.resolution.height,
+				iwidth, iheight);
+
+			m_manager.machine().switchRes.resolution.width = iwidth;
+			m_manager.machine().switchRes.resolution.height = iheight;
+
+			m_manager.machine().switchRes.resolution.changeres = 1;
+		}
+	} else {
+		m_manager.machine().switchRes.resolution.width = iwidth;
+		m_manager.machine().switchRes.resolution.height = iheight;
+	}
+
+	if (m_manager.machine().switchRes.cs.cleanstretch) {
+	
+		width = iwidth;
+		height = iheight;
+
+		xscale = (int)target_width % (int)width;
+		yscale = (int)target_height % (int)height;
+
+		target_width -= xscale;
+		target_height -= yscale;
+
+		xscale = (int)target_width / (int)width;
+		yscale = (int)target_height / (int)height;
+
+		if (xscale > yscale)
+			xscale = yscale;
+		if (yscale > xscale)
+			yscale = xscale;
+	}
 
 	// constrained case
-	if (target_pixel_aspect != 0.0f)
+	else if (target_pixel_aspect != 0.0f)
 	{
 		// start with the aspect ratio of the square pixel layout
 		width = m_curview->effective_aspect(m_layerconfig);
@@ -1222,9 +1266,9 @@ void render_target::compute_visible_area(INT32 target_width, INT32 target_height
 
 		// based on the height/width ratio of the source and target, compute the scale factor
 		if (width / height > (float)target_width / (float)target_height)
-			scale = (float)target_width / width;
+			xscale = yscale = (float)target_width / width;
 		else
-			scale = (float)target_height / height;
+			xscale = yscale = (float)target_height / height;
 	}
 
 	// stretch-to-fit case
@@ -1232,12 +1276,12 @@ void render_target::compute_visible_area(INT32 target_width, INT32 target_height
 	{
 		width = (float)target_width;
 		height = (float)target_height;
-		scale = 1.0f;
+		xscale = yscale = 1.0f;
 	}
 
 	// set the final width/height
-	visible_width = render_round_nearest(width * scale);
-	visible_height = render_round_nearest(height * scale);
+	visible_width = render_round_nearest(width * xscale);
+	visible_height = render_round_nearest(height * yscale);
 }
 
 

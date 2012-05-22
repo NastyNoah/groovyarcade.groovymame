@@ -82,6 +82,10 @@ const options_entry emu_options::s_option_entries[] =
 	{ OPTION_SNAPSHOT_DIRECTORY,                         "snap",      OPTION_STRING,     "directory to save screenshots" },
 	{ OPTION_DIFF_DIRECTORY,                             "diff",      OPTION_STRING,     "directory to save hard drive image difference files" },
 	{ OPTION_COMMENT_DIRECTORY,                          "comments",  OPTION_STRING,     "directory to save debugger comments" },
+	
+	// MKCHAMP - ADDING CFG OPTION TO SPECIFY HISCORE DIRECTORY..."hi" BY DEFAULT
+	{ NULL,                                              NULL,        OPTION_HEADER,     "CORE OUTPUT DIRECTORY OPTIONS" },
+	{ OPTION_HISCORE_DIRECTORY,                          "hi",        OPTION_STRING,     "directory to save hiscores" },
 
 	// state/playback options
 	{ NULL,                                              NULL,        OPTION_HEADER,     "CORE STATE/PLAYBACK OPTIONS" },
@@ -103,6 +107,7 @@ const options_entry emu_options::s_option_entries[] =
 	{ OPTION_FRAMESKIP ";fs(0-10)",                      "0",         OPTION_INTEGER,    "set frameskip to fixed value, 0-10 (autoframeskip must be disabled)" },
 	{ OPTION_SECONDS_TO_RUN ";str",                      "0",         OPTION_INTEGER,    "number of emulated seconds to run before automatically exiting" },
 	{ OPTION_THROTTLE,                                   "1",         OPTION_BOOLEAN,    "enable throttling to keep game running in sync with real time" },
+	{ OPTION_SYNCREFRESH ";sr",                          "1",         OPTION_BOOLEAN,    "enable using the start of VBLANK for throttling instead of the game time" },
 	{ OPTION_SLEEP,                                      "1",         OPTION_BOOLEAN,    "enable sleeping, which gives time back to other applications when idle" },
 	{ OPTION_SPEED "(0.01-100)",                         "1.0",       OPTION_FLOAT,      "controls the speed of gameplay, relative to realtime; smaller numbers are slower" },
 	{ OPTION_REFRESHSPEED ";rs",                         "0",         OPTION_BOOLEAN,    "automatically adjusts the speed of gameplay to keep the refresh rate lower than the screen" },
@@ -119,12 +124,12 @@ const options_entry emu_options::s_option_entries[] =
 
 	// artwork options
 	{ NULL,                                              NULL,        OPTION_HEADER,     "CORE ARTWORK OPTIONS" },
-	{ OPTION_ARTWORK_CROP ";artcrop",                    "0",         OPTION_BOOLEAN,    "crop artwork to game screen size" },
-	{ OPTION_USE_BACKDROPS ";backdrop",                  "1",         OPTION_BOOLEAN,    "enable backdrops if artwork is enabled and available" },
-	{ OPTION_USE_OVERLAYS ";overlay",                    "1",         OPTION_BOOLEAN,    "enable overlays if artwork is enabled and available" },
-	{ OPTION_USE_BEZELS ";bezel",                        "1",         OPTION_BOOLEAN,    "enable bezels if artwork is enabled and available" },
-	{ OPTION_USE_CPANELS ";cpanel",                      "1",         OPTION_BOOLEAN,    "enable cpanels if artwork is enabled and available" },
-	{ OPTION_USE_MARQUEES ";marquee",                    "1",         OPTION_BOOLEAN,    "enable marquees if artwork is enabled and available" },
+	{ OPTION_ARTWORK_CROP ";artcrop",                    "1",         OPTION_BOOLEAN,    "crop artwork to game screen size" },
+	{ OPTION_USE_BACKDROPS ";backdrop",                  "0",         OPTION_BOOLEAN,    "enable backdrops if artwork is enabled and available" },
+	{ OPTION_USE_OVERLAYS ";overlay",                    "0",         OPTION_BOOLEAN,    "enable overlays if artwork is enabled and available" },
+	{ OPTION_USE_BEZELS ";bezel",                        "0",         OPTION_BOOLEAN,    "enable bezels if artwork is enabled and available" },
+	{ OPTION_USE_CPANELS ";cpanel",                      "0",         OPTION_BOOLEAN,    "enable cpanels if artwork is enabled and available" },
+	{ OPTION_USE_MARQUEES ";marquee",                    "0",         OPTION_BOOLEAN,    "enable marquees if artwork is enabled and available" },
 
 	// screen options
 	{ NULL,                                              NULL,        OPTION_HEADER,     "CORE SCREEN OPTIONS" },
@@ -193,7 +198,38 @@ const options_entry emu_options::s_option_entries[] =
 	{ OPTION_UI_FONT,                                    "default",   OPTION_STRING,     "specify a font to use" },
 	{ OPTION_RAMSIZE ";ram",                             NULL,        OPTION_STRING,     "size of RAM (if supported by driver)" },
 	{ OPTION_CONFIRM_QUIT,                               "0",         OPTION_BOOLEAN,    "display confirm quit screen on exit" },
-	{ NULL }
+	// MKChamp Hiscore Diff options 
+  { NULL,                                              NULL,        OPTION_HEADER,     "CORE MKChamp OPTIONS" },
+  { OPTION_DISABLE_HISCORE_PATCH,                      "0",         OPTION_BOOLEAN,    "disable hiscore saving" },
+  { OPTION_DISABLE_NAGSCREEN_PATCH,                    "1",         OPTION_BOOLEAN,    "disable suppression of nagscreens" },
+  { OPTION_DISABLE_LOADING_PATCH,                      "1",         OPTION_BOOLEAN,    "disable suppression of loading screens /white box" },
+    
+  // Switchres options
+	{ NULL,                                              NULL,        OPTION_HEADER,     "CORE SWITCHRES OPTIONS" },
+	{ OPTION_MODELINE ";ml",                             "1",         OPTION_BOOLEAN,    "generate modelines for arcade monitors (only ATI Radeon support in Windows)" },
+	{ OPTION_MONITOR ";m",                               "cga",       OPTION_STRING,     "monitor type (cga|generic|h9110|vga|d9200|d9800|m2929|m3192|ntsc|pal)" },
+	{ OPTION_MONITOR_CONNECTOR ";mc",                    "auto",      OPTION_STRING,     "Linux video card output (VGA-0|VGA-1|DVI-0|DVI-1)" },
+	{ OPTION_MONITOR_ORIENTATION ";mo",                  "horizontal",OPTION_STRING,     "monitor orientation (horizontal|vertical|rotate)" },
+	{ OPTION_MONITOR_ASPECT ";ma",                       "4:3",       OPTION_STRING,     "monitor aspect (4:3|3:3|3:4|16:9)" },
+	{ OPTION_MONITOR_DEBUG ";md",                        "0",         OPTION_STRING,     "monitor debugging" },
+	{ OPTION_MONITOR_DOUBLESCAN ";ds",                   "1",         OPTION_BOOLEAN,    "Use doublescan if necessary, not available in Windows" },
+	{ OPTION_MONITOR_DOTCLOCK ";dc",                     "0",         OPTION_STRING,     "Lowest dotclock videocard accepts, 0 is the default" },
+	{ OPTION_MONITOR_YMIN ";ym",                         "0",         OPTION_STRING,     "Minimum height to calculate, default is no minimum" },
+	{ OPTION_CLEANSTRETCH ";cs",                         "0",         OPTION_BOOLEAN,    "cleanstretch integer only scaling" },
+	{ OPTION_CHANGERES ";cr",                            "1",         OPTION_BOOLEAN,    "change resolutions (work in progress)" },
+	{ OPTION_REDRAW ";rd",                               "0",         OPTION_STRING,     "multiply amount to draw game screen, make 30HZ games run at 60HZ when set to 2" },
+	{ OPTION_MONITOR_SPECS0 ";ms0",                      "auto",      OPTION_STRING,     "Add custom monitor specs, format: 15250.00-15700.00,49.50-65.00,2.000,4.700,8.000,0.064,0.192,1.024,0,0,288.0,448" },
+	{ OPTION_MONITOR_SPECS1 ";ms1",                      "auto",      OPTION_STRING,     "Add custom monitor specs" },
+	{ OPTION_MONITOR_SPECS2 ";ms2",                      "auto",      OPTION_STRING,     "Add custom monitor specs" },
+	{ OPTION_MONITOR_SPECS3 ";ms3",                      "auto",      OPTION_STRING,     "Add custom monitor specs" },
+	{ OPTION_MONITOR_SPECS4 ";ms4",                      "auto",      OPTION_STRING,     "Add custom monitor specs" },
+	{ OPTION_MONITOR_SPECS5 ";ms5",                      "auto",      OPTION_STRING,     "Add custom monitor specs" },
+	{ OPTION_MONITOR_SPECS6 ";ms6",                      "auto",      OPTION_STRING,     "Add custom monitor specs" },
+	{ OPTION_MONITOR_SPECS7 ";ms7",                      "auto",      OPTION_STRING,     "Add custom monitor specs" },
+	{ OPTION_MAGIC_RESOLUTION ";mr",                     "auto",      OPTION_STRING,     "Use this resolution to generate all the others" },
+	{ OPTION_POWERSTRIP ";ps",                           "0",         OPTION_BOOLEAN,    "Use Powerstrip API to set refresh rate (experimental)" },
+  	{ NULL }
+
 };
 
 
