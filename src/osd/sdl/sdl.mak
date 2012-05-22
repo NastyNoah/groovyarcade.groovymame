@@ -210,6 +210,7 @@ else
 CCOMFLAGS += -arch ppc
 LDFLAGS += -arch ppc
 endif
+$(OBJ)/emu/cpu/tms57002/tms57002.o : CCOMFLAGS += -O0
 else	# BIGENDIAN
 ifeq ($(PTR64),1)
 CCOMFLAGS += -arch x86_64
@@ -307,8 +308,7 @@ OSDOBJS = \
 	$(SDLOBJ)/drawsdl.o \
 	$(SDLOBJ)/window.o \
 	$(SDLOBJ)/output.o \
-	$(SDLOBJ)/watchdog.o \
-	$(SDLOBJ)/switchres.o
+	$(SDLOBJ)/watchdog.o
 
 # Add SDL2.0 support
 

@@ -19,7 +19,6 @@ EMULAYOUT = $(EMUOBJ)/layout
 EMUMACHINE = $(EMUOBJ)/machine
 EMUIMAGEDEV = $(EMUOBJ)/imagedev
 EMUVIDEO = $(EMUOBJ)/video
-EMUSWITCHRES = $(EMUOBJ)/switchres
 
 OBJDIRS += \
 	$(EMUOBJ)/cpu \
@@ -32,7 +31,6 @@ OBJDIRS += \
 	$(EMUOBJ)/layout \
 	$(EMUOBJ)/imagedev \
 	$(EMUOBJ)/video \
-	$(EMUOBJ)/switchres \
 
 OSDSRC = $(SRC)/osd
 OSDOBJ = $(OBJ)/osd
@@ -43,7 +41,6 @@ OBJDIRS += \
 
 #-------------------------------------------------
 # emulator core objects
-# MKCHAMP - ADDED hiscore.o TO LIST TO COMPILE THE HISCORE PIECE
 #-------------------------------------------------
 
 EMUOBJS = \
@@ -81,7 +78,6 @@ EMUOBJS = \
 	$(EMUOBJ)/emupal.o \
 	$(EMUOBJ)/fileio.o \
 	$(EMUOBJ)/hash.o \
-	$(EMUOBJ)/hiscore.o \
 	$(EMUOBJ)/image.o \
 	$(EMUOBJ)/info.o \
 	$(EMUOBJ)/input.o \
@@ -318,15 +314,9 @@ EMUIMAGEDEVOBJS = \
 	$(EMUIMAGEDEV)/printer.o	\
 	$(EMUIMAGEDEV)/serial.o		\
 	$(EMUIMAGEDEV)/snapquik.o	\
-	
-EMUSWITCHRESOBJS = \
-	$(EMUSWITCHRES)/modeline.o \
-	$(EMUSWITCHRES)/monitor.o \
-	$(EMUSWITCHRES)/util.o \
-	$(EMUSWITCHRES)/switchres.o \
 
 
-LIBEMUOBJS = $(EMUOBJS) $(EMUSOUNDOBJS) $(EMUAUDIOOBJS) $(EMUDRIVEROBJS) $(EMUMACHINEOBJS) $(EMUIMAGEDEVOBJS) $(EMUVIDEOOBJS) $(EMUSWITCHRESOBJS)
+LIBEMUOBJS = $(EMUOBJS) $(EMUSOUNDOBJS) $(EMUAUDIOOBJS) $(EMUDRIVEROBJS) $(EMUMACHINEOBJS) $(EMUIMAGEDEVOBJS) $(EMUVIDEOOBJS)
 
 $(LIBEMU): $(LIBEMUOBJS)
 

@@ -67,6 +67,7 @@
 #define SDLOPTION_NUMPROCESSORS			"numprocessors"
 
 #define SDLOPTION_WAITVSYNC				"waitvsync"
+#define SDLOPTION_SYNCREFRESH			"syncrefresh"
 #define SDLOPTION_KEYMAP				"keymap"
 #define SDLOPTION_KEYMAP_FILE			"keymap_file"
 #define SDLOPTION_UIMODEKEY				"uimodekey"
@@ -161,6 +162,7 @@ public:
 	bool centerh() const { return bool_value(SDLOPTION_CENTERH); }
 	bool centerv() const { return bool_value(SDLOPTION_CENTERV); }
 	bool wait_vsync() const { return bool_value(SDLOPTION_WAITVSYNC); }
+	bool sync_refresh() const { return bool_value(SDLOPTION_SYNCREFRESH); }
 	const char *scale_mode() const { return value(SDLOPTION_SCALEMODE); }
 
 	// OpenGL specific options
@@ -231,7 +233,6 @@ public:
 	// general overridables
 	virtual void init(running_machine &machine);
 	virtual void update(bool skip_redraw);
-	virtual void update_hi(bool skip_redraw);
 
 	// debugger overridables
 	virtual void init_debugger();
@@ -271,7 +272,3 @@ void sdlaudio_init(running_machine &machine);
 extern int osd_num_processors;
 
 #endif
-//ves
-#define SDLOPTION_LIGHTGUNINDEX			"lightgun_index"  
-//ves
-

@@ -105,7 +105,6 @@ video_manager::video_manager(running_machine &machine)
 	  m_overall_emutime(attotime::zero),
 	  m_overall_valid_counter(0),
 	  m_throttle(machine.options().throttle()),
-	  m_syncrefresh(machine.options().sync_refresh()),
 	  m_fastforward(false),
 	  m_seconds_to_run(machine.options().seconds_to_run()),
 	  m_auto_frameskip(machine.options().auto_frameskip()),
@@ -240,14 +239,7 @@ void video_manager::frame_update(bool debug)
 
 	// ask the OSD to update
 	g_profiler.start(PROFILER_BLIT);
-	//machine().osd().update(!debug && skipped_it);
-	if (machine().switchRes.cs.redraw == 0 || m_speed_percent < 0.75)
-		machine().osd().update(!debug && skipped_it);
-	else {
-		int i;
-		for(i=0; i < machine().switchRes.cs.redraw; i++)
-			machine().osd().update(!debug && skipped_it);
-	}
+	machine().osd().update(!debug && skipped_it);
 	g_profiler.stop();
 
 	// perform tasks for this frame
@@ -499,67 +491,6 @@ void video_manager::end_recording()
 	m_movie_frame = 0;
 }
 
-/*-------------------------------------------------
-   MKCHAMP - BELOW IS THE NEW SUB CALLED FROM UI.C. ONLY DIFFERENCE BETWEEN THIS SUB AND
-   frame_update IS IT CALLS NEW SUB CALLED update_hi INSTEAD OF update (located
-   in osd/windows/video.c)
--------------------------------------------------*/
-
-void video_manager::frame_update_hi(bool debug)
-{
-	// only render sound and video if we're in the running phase
-	int phase = machine().phase();
-	bool skipped_it = m_skipping_this_frame;
-	if (phase == MACHINE_PHASE_RUNNING && (!machine().paused() || machine().options().update_in_pause()))
-	{
-		bool anything_changed = finish_screen_updates();
-
-		// if none of the screens changed and we haven't skipped too many frames in a row,
-        // mark this frame as skipped to prevent throttling; this helps for games that
-        // don't update their screen at the monitor refresh rate
-		if (!anything_changed && !m_auto_frameskip && m_frameskip_level == 0 && m_empty_skip_count++ < 3)
-			skipped_it = true;
-		else
-			m_empty_skip_count = 0;
-	}
-
-	// draw the user interface
-	ui_update_and_render(machine(), &machine().render().ui_container());
-
-	// update the internal render debugger
-	debugint_update_during_game(machine());
-
-	// if we're throttling, synchronize before rendering
-	attotime current_time = machine().time();
-	if (!debug && !skipped_it && effective_throttle())
-		update_throttle(current_time);
-
-	// ask the OSD to update
-	g_profiler.start(PROFILER_BLIT);
-	machine().osd().update_hi(!debug && skipped_it);
-	g_profiler.stop();
-
-	// perform tasks for this frame
-	if (!debug)
-		machine().call_notifiers(MACHINE_NOTIFY_FRAME);
-
-	// update frameskipping
-	if (!debug)
-		update_frameskip();
-
-	// update speed computations
-	if (!debug && !skipped_it)
-		recompute_speed(current_time);
-
-	// call the end-of-frame callback
-	if (phase == MACHINE_PHASE_RUNNING)
-	{
-		// reset partial updates if we're paused or if the debugger is active
-		if (machine().primary_screen != NULL && (machine().paused() || debug || debugger_within_instruction_hook(machine())))
-			machine().primary_screen->reset_partial_updates();
-	}
-}
-
 
 //-------------------------------------------------
 //  add_sound_to_recording - add sound to a movie
@@ -791,10 +722,6 @@ void video_manager::update_throttle(attotime emutime)
 		2,3,3,4,3,4,4,5, 3,4,4,5,4,5,5,6, 3,4,4,5,4,5,5,6, 4,5,5,6,5,6,6,7,
 		3,4,4,5,4,5,5,6, 4,5,5,6,5,6,6,7, 4,5,5,6,5,6,6,7, 5,6,6,7,6,7,7,8
 	};
-
-	// if we're only syncing to the refresh, bail now
-	if (m_syncrefresh)
-		return;
 
 	// outer scope so we can break out in case of a resync
 	while (1)
@@ -1068,9 +995,7 @@ void video_manager::recompute_speed(attotime emutime)
 		osd_ticks_t delta_realtime = realtime - m_speed_last_realtime;
 		osd_ticks_t tps = osd_ticks_per_second();
 		m_speed_percent = delta_emutime.as_double() * (double)tps / (double)delta_realtime;
-		if (m_syncrefresh && m_throttle)
-			m_speed = m_speed_percent * 1000;
-			
+
 		// remember the last times
 		m_speed_last_realtime = realtime;
 		m_speed_last_emutime = emutime;

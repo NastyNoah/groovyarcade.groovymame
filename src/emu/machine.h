@@ -288,7 +288,6 @@ public:
 
 	// CPU information
 	cpu_device *			firstcpu;			// first CPU
-	device_t *		cpu[8];           // MKChamp--CPU for hiscore support 
 
 	// video-related information
 	gfx_element *			gfx[MAX_GFX_ELEMENTS];// array of pointers to graphic sets (chars, sprites)
@@ -303,9 +302,6 @@ public:
 
 	// debugger-related information
 	UINT32					debug_flags;		// the current debug flags
-
-	// SwitchRes patch
-	SwitchRes				switchRes;			// SwitchRes data
 
 	// internal core information
 	palette_private *		palette_data;		// internal data from palette.c

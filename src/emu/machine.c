@@ -110,7 +110,6 @@
 #include "validity.h"
 #include "unzip.h"
 #include "debug/debugcon.h"
-#include "hiscore.h"
 
 #include <time.h>
 
@@ -132,8 +131,6 @@ static char giant_string_buffer[65536] = { 0 };
 //-------------------------------------------------
 //  running_machine - constructor
 //-------------------------------------------------
-
-int cpunum;
 
 running_machine::running_machine(const machine_config &_config, osd_interface &osd, bool exit_to_game_select)
 	: firstcpu(NULL),
@@ -183,7 +180,6 @@ running_machine::running_machine(const machine_config &_config, osd_interface &o
 {
 	memset(gfx, 0, sizeof(gfx));
 	memset(&m_base_time, 0, sizeof(m_base_time));
-	memset(&switchRes, 0, sizeof(switchRes));
 
 	// set the machine on all devices
 	device_iterator iter(root_device());
@@ -199,10 +195,7 @@ running_machine::running_machine(const machine_config &_config, osd_interface &o
 		}
 	screen_device_iterator screeniter(root_device());
 	primary_screen = screeniter.first();
-	//MKCHAMP--initialize the cpu for hiscore
-  cpu[0] = firstcpu;
- 	for (cpunum = 1; cpunum < ARRAY_LENGTH(cpu) && cpu[cpunum - 1] != NULL; cpunum++)
- 		cpu[cpunum] = cpu[cpunum - 1]->next();
+
 	// fetch core options
 	if (options().debug())
 		debug_flags = (DEBUG_FLAG_ENABLED | DEBUG_FLAG_CALL_HOOK) | (options().debug_internal() ? 0 : DEBUG_FLAG_OSD_ENABLED);
@@ -256,9 +249,6 @@ void running_machine::start()
 
 	// allocate a soft_reset timer
 	m_soft_reset_timer = m_scheduler.timer_alloc(timer_expired_delegate(FUNC(running_machine::soft_reset), this));
-
-	// Switchres
-	SetMameOptions(*this);
 
 	// init the osd layer
 	m_osd.init(*this);
@@ -327,10 +317,6 @@ void running_machine::start()
 
 	// set up the cheat engine
 	m_cheat = auto_alloc(*this, cheat_manager(*this));
-
-  //MKCHAMP - INITIALIZING THE HISCORE ENGINE
-  if (! options().disable_hiscore_patch())
- 		hiscore_init(*this);
 
 	// disallow save state registrations starting here
 	m_save.allow_registration(false);

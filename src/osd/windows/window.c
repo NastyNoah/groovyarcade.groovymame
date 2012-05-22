@@ -73,7 +73,7 @@ extern int drawnone_init(running_machine &machine, win_draw_callbacks *callbacks
 extern int drawgdi_init(running_machine &machine, win_draw_callbacks *callbacks);
 extern int drawdd_init(running_machine &machine, win_draw_callbacks *callbacks);
 extern int drawd3d_init(running_machine &machine, win_draw_callbacks *callbacks);
-extern bool switchres_resolution_change(win_window_info *window);
+
 
 //============================================================
 //  PARAMETERS
@@ -103,7 +103,7 @@ extern bool switchres_resolution_change(win_window_info *window);
 #define WM_USER_SET_MINSIZE				(WM_USER + 5)
 #define WM_USER_UI_TEMP_PAUSE			(WM_USER + 6)
 #define WM_USER_EXEC_FUNC				(WM_USER + 7)
-#define WM_USER_CHANGERES				(WM_USER + 8)
+
 
 
 //============================================================
@@ -144,12 +144,7 @@ static win_draw_callbacks draw;
 
 static HANDLE ui_pause_event;
 static HANDLE window_thread_ready_event;
-static HANDLE blit_pending;
-static HANDLE blit_done;
-static DWORD blit_threadid;
-static int blitting_active;
-static BOOL blit_lock;
-static BOOL blit_unlock;
+
 
 
 //============================================================
@@ -174,7 +169,7 @@ static void maximize_window(win_window_info *window);
 
 static void adjust_window_position_after_major_change(win_window_info *window);
 static void set_fullscreen(win_window_info *window, int fullscreen);
-static DWORD WINAPI blit_loop(LPVOID lpParameter);
+
 
 // temporary hacks
 #if LOG_THREADS
@@ -315,18 +310,7 @@ static void winwindow_exit(running_machine &machine)
 
 	// kill the drawers
 	(*draw.exit)();
-	
-	// end blitting thread
-	if (multithreading_enabled)
-	{
-		blitting_active = FALSE;
-		SetEvent(blit_pending);
-		WaitForSingleObject(blit_done, 1000);
-		CloseHandle (blit_pending);
-		CloseHandle (blit_done);
-		mame_printf_verbose("Blitting thread destroyed\n");
-	}
-	
+
 	// if we're multithreaded, clean up the window thread
 	if (multithreading_enabled)
 	{
@@ -713,18 +697,6 @@ void winwindow_video_window_create(running_machine &machine, int index, win_moni
 	// set the initial maximized state
 	window->startmaximized = options.maximize();
 
-	// create blitting thread
-	if (multithreading_enabled)
-	{	
-		mame_printf_verbose("Blitting thread created\n");
-		blitting_active = TRUE;
-		blit_lock = TRUE;
-		mame_printf_verbose("winwindow_video_window_create: blit_lock = TRUE\n");
-		blit_pending = CreateEvent(NULL, FALSE, FALSE, NULL);
-		blit_done = CreateEvent(NULL, FALSE, FALSE, NULL);
-		CreateThread (NULL, 0, blit_loop, (LPVOID)window, 0, &blit_threadid);
-	}
-
 	// finish the window creation on the window thread
 	if (multithreading_enabled)
 	{
@@ -778,67 +750,7 @@ static void winwindow_video_window_destroy(win_window_info *window)
 	global_free(window);
 }
 
-//============================================================
-//  blit_loop
-//  (blitting thread)
-//============================================================
 
-static DWORD WINAPI blit_loop(LPVOID lpParameter)
-{
-	win_window_info *window = (win_window_info *)lpParameter;
-	bool m_throttled;
-
-	mame_printf_verbose("Blitting thread started\n");
-	
-	do {
-		WaitForSingleObject(blit_pending, INFINITE);
-		m_throttled = window->machine().video().throttled();
-		if (!blit_lock) draw_video_contents(window, NULL, FALSE);
-		if (m_throttled) SetEvent(blit_done);
-		
-	} while (blitting_active);
-
-	mame_printf_verbose("Blitting thread ended\n");
-	
-	return -1;
-
-}
-
-//============================================================
-//  blit_lock_set
-//  (window thread)
-//============================================================
-
-void blit_lock_set ()
-{
-	blit_lock = TRUE;
-	mame_printf_verbose("blit_lock = TRUE\n");
-	Sleep(20);
-}
-
-//============================================================
-//  blit_lock_reset
-//  (window thread)
-//============================================================
-
-void blit_lock_reset ()
-{
-	blit_unlock = TRUE;
-	mame_printf_verbose("blit_unlock = TRUE\n");
-}
-
-//============================================================
-//  blit_lock_release
-//  (window thread)
-//============================================================
-
-void blit_lock_release ()
-{
-	Sleep(20);
-	blit_unlock = FALSE;
-	blit_lock = FALSE;
-	mame_printf_verbose("blit_lock = FALSE\n");
-}
 
 //============================================================
 //  winwindow_video_window_update
@@ -846,97 +758,6 @@ void blit_lock_release ()
 //============================================================
 
 void winwindow_video_window_update(win_window_info *window)
-{
-	int targetview, targetorient;
-	render_layer_config targetlayerconfig;
-
-	assert(GetCurrentThreadId() == main_threadid);
-
-	mtlog_add("winwindow_video_window_update: begin");
-
-	// see if the target has changed significantly in window mode
-	targetview = window->target->view();
-	targetorient = window->target->orientation();
-	targetlayerconfig = window->target->layer_config();
-	if (targetview != window->targetview || targetorient != window->targetorient || targetlayerconfig != window->targetlayerconfig)
-	{
-		window->targetview = targetview;
-		window->targetorient = targetorient;
-		window->targetlayerconfig = targetlayerconfig;
-
-		// in window mode, reminimize/maximize
-		if (!window->fullscreen)
-		{
-			if (window->isminimized)
-				SendMessage(window->hwnd, WM_USER_SET_MINSIZE, 0, 0);
-			if (window->ismaximized)
-				SendMessage(window->hwnd, WM_USER_SET_MAXSIZE, 0, 0);
-		}
-	}
-
-	// if we're visible and running and not in the middle of a resize, draw
-	if ((!multithreading_enabled || !blit_lock) && window->hwnd != NULL && window->target != NULL && window->drawdata != NULL)
-	{
-		int got_lock = TRUE;
-
-		mtlog_add("winwindow_video_window_update: try lock");
-
-		got_lock = osd_lock_try(window->render_lock);
-		
-		// only render if we were able to get the lock
-		if (got_lock)
-		{
-			render_primitive_list *primlist;
-
-			mtlog_add("winwindow_video_window_update: got lock");
-
-			// don't hold the lock; we just used it to see if rendering was still happening
-			osd_lock_release(window->render_lock);
-			
-			// check resolution change
-			if (window->machine().options().changeres() 
-				&& window->machine().switchRes.resolution.changeres
-				&& video_config.switchres)
-			{
-				switchres_resolution_change(window);
-				return;
-			}
-
-			// ensure the target bounds are up-to-date, and then get the primitives
-			primlist = (*draw.window_get_primitives)(window);
-
-			// post a redraw request with the primitive list as a parameter
-			last_update_time = timeGetTime();
-			mtlog_add("winwindow_video_window_update: PostMessage start");
-			if (multithreading_enabled && video_config.mode != VIDEO_MODE_GDI)
-			{
-				window->primlist = primlist;
-				SetEvent(blit_pending);
-			
-				if ((video_config.waitvsync && window->machine().video().throttled()))
-					WaitForSingleObject(blit_done, 1000);
-			}
-			else
-				SendMessage(window->hwnd, WM_USER_REDRAW, 0, (LPARAM)primlist);
-			mtlog_add("winwindow_video_window_update: PostMessage end");
-		}
-	}
-
-	mtlog_add("winwindow_video_window_update: end");
-}
-
-//============================================================
-//  MKCHAMP - LAST OF THE NEW SUB CHAIN. FOR THOSE FOLLOWING, THE PATH IS:
-//  emu/ui.c->ui_set_startup_text CALLS emu/video.c->video_frame_update_hi WHICH CALLS
-//  osd/windows/video.c->osd_update_hi WHICH CALLS THIS SUB. 
-//  THE ONLY DIFFERENCE BETWEEN THIS SUB AND winwindow_video_window_update IS IT DOES NOT
-//  perform PostMessage(window->hwnd, WM_USER_REDRAW, 0, (LPARAM)primlist) OR
-//  SendMessage(window->hwnd, WM_USER_REDRAW, 0, (LPARAM)primlist)
-//  ALL THIS DOES IS ALLOW MAME TO PROPERLY RUN TO CALCULATE THE REFRESHSPEED/ETC. WITHOUT
-//  GIVING THE WHITE BOX THAT SEEMS TO ANNOY SOME PEOPLE!
-//============================================================
-
-void winwindow_video_window_update_hi(win_window_info *window)
 {
 	int targetview, targetorient;
 	render_layer_config targetlayerconfig;
@@ -994,16 +815,17 @@ void winwindow_video_window_update_hi(win_window_info *window)
 			// post a redraw request with the primitive list as a parameter
 			last_update_time = timeGetTime();
 			mtlog_add("winwindow_video_window_update: PostMessage start");
-			//if (multithreading_enabled)
-			//	PostMessage(window->hwnd, WM_USER_REDRAW, 0, (LPARAM)primlist);
-			//else
-			//	SendMessage(window->hwnd, WM_USER_REDRAW, 0, (LPARAM)primlist);
+			if (multithreading_enabled)
+				PostMessage(window->hwnd, WM_USER_REDRAW, 0, (LPARAM)primlist);
+			else
+				SendMessage(window->hwnd, WM_USER_REDRAW, 0, (LPARAM)primlist);
 			mtlog_add("winwindow_video_window_update: PostMessage end");
 		}
 	}
 
 	mtlog_add("winwindow_video_window_update: end");
 }
+
 
 
 //============================================================
@@ -1055,7 +877,7 @@ static void create_window_class(void)
 		wc.hInstance		= GetModuleHandle(NULL);
 		wc.lpfnWndProc		= winwindow_video_window_proc_ui;
 		wc.hCursor			= LoadCursor(NULL, IDC_ARROW);
-		wc.hIcon			= LoadIcon(NULL, IDI_APPLICATION);
+		wc.hIcon			= LoadIcon(wc.hInstance, MAKEINTRESOURCE(2));
 
 		// register the class; fail if we can't
 		if (!RegisterClass(&wc))
@@ -1393,7 +1215,6 @@ static int complete_create(win_window_info *window)
 		// finish off by trying to initialize DirectX; if we fail, ignore it
 		if ((*draw.window_init)(window))
 			return 1;
-			else blit_lock_reset();
 		ShowWindow(window->hwnd, SW_SHOW);
 	}
 
@@ -1430,15 +1251,12 @@ LRESULT CALLBACK winwindow_video_window_proc(HWND wnd, UINT message, WPARAM wpar
 		// paint: redraw the last bitmap
 		case WM_PAINT:
 		{
-			mame_printf_verbose("window_proc: WM_PAINT\n");
 			PAINTSTRUCT pstruct;
 			HDC hdc = BeginPaint(wnd, &pstruct);
 			draw_video_contents(window, hdc, TRUE);
 			if (win_has_menu(window))
 				DrawMenuBar(window->hwnd);
 			EndPaint(wnd, &pstruct);
-			if (blit_unlock) blit_lock_release();
-			mame_printf_verbose("window_proc: WM_PAINT:END\n");
 			break;
 		}
 
@@ -1534,7 +1352,6 @@ LRESULT CALLBACK winwindow_video_window_proc(HWND wnd, UINT message, WPARAM wpar
 		// syscommands: catch win_start_maximized
 		case WM_SYSCOMMAND:
 		{
-			mame_printf_verbose("window_proc: WM_SYSCOMMAND %d\n", (UINT32)wparam);
 			// prevent screensaver or monitor power events
 			if (wparam == SC_MONITORPOWER || wparam == SC_SCREENSAVE)
 				return 1;
@@ -1542,7 +1359,7 @@ LRESULT CALLBACK winwindow_video_window_proc(HWND wnd, UINT message, WPARAM wpar
 			// most SYSCOMMANDs require us to invalidate the window
 			InvalidateRect(wnd, NULL, FALSE);
 
-			// handle maximize & minimize
+			// handle maximize
 			if ((wparam & 0xfff0) == SC_MAXIMIZE)
 			{
 				update_minmax_state(window);
@@ -1552,9 +1369,6 @@ LRESULT CALLBACK winwindow_video_window_proc(HWND wnd, UINT message, WPARAM wpar
 					maximize_window(window);
 				break;
 			}
-			else if ((wparam & 0xfff0) == SC_MINIMIZE) blit_lock_set();
-			else if ((wparam & 0xfff0) == SC_RESTORE) blit_lock_reset();
-			
 			return DefWindowProc(wnd, message, wparam, lparam);
 		}
 
@@ -1573,8 +1387,6 @@ LRESULT CALLBACK winwindow_video_window_proc(HWND wnd, UINT message, WPARAM wpar
 
 		// destroy: clean up all attached rendering bits and NULL out our hwnd
 		case WM_DESTROY:
-			mame_printf_verbose("window_proc: WM_DESTROY\n");
-			blit_lock_set();
 			(*draw.window_destroy)(window);
 			window->hwnd = NULL;
 			return DefWindowProc(wnd, message, wparam, lparam);
@@ -1600,18 +1412,7 @@ LRESULT CALLBACK winwindow_video_window_proc(HWND wnd, UINT message, WPARAM wpar
 
 		// fullscreen set
 		case WM_USER_SET_FULLSCREEN:
-			mame_printf_verbose("window_proc: WM_USER_SET_FULLSCREEN\n");
-			blit_lock_set();
 			set_fullscreen(window, wparam);
-			mame_printf_verbose("window_proc: WM_USER_SET_FULLSCREEN_END\n");
-			break;
-
-		// Resolution change
-		case WM_USER_CHANGERES:
-			mame_printf_verbose("window_proc: WM_USER_CHANGERES\n");
-			blit_lock_set();
-			(*draw.window_destroy)(window);
-			if (!(*draw.window_init)(window)) blit_lock_reset();
 			break;
 
 		// minimum size set
@@ -1623,11 +1424,6 @@ LRESULT CALLBACK winwindow_video_window_proc(HWND wnd, UINT message, WPARAM wpar
 		case WM_USER_SET_MAXSIZE:
 			maximize_window(window);
 			break;
-			case WM_NCACTIVATE:
-			mame_printf_verbose("window_proc: WM_NCACTIVATE\n");
-			if (window->fullscreen && !blit_lock && !IsIconic(window->hwnd)) blit_lock_set();
-			return DefWindowProc(wnd, message, wparam, lparam);
-	
 
 		// set focus: if we're not the primary window, switch back
 		// commented out ATM because this prevents us from resizing secondary windows
@@ -2103,7 +1899,6 @@ static void set_fullscreen(win_window_info *window, int fullscreen)
 			ShowWindow(window->hwnd, SW_SHOW);
 		if ((*draw.window_init)(window))
 			exit(1);
-			else blit_lock_reset();
 	}
 
 	// ensure we're still adjusted correctly

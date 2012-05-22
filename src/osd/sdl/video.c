@@ -345,33 +345,6 @@ void sdl_osd_interface::update(bool skip_redraw)
 		debugwin_update_during_game(machine());
 }
 
-//============================================================
-//  update_hi
-//============================================================
-
-void sdl_osd_interface::update_hi(bool skip_redraw)
-{
-	sdl_window_info *window;
-
-	if (m_watchdog != NULL)
-		m_watchdog->reset();
-
-	// if we're not skipping this redraw, update all windows
-	if (!skip_redraw)
-	{
-//      profiler_mark(PROFILER_BLIT);
-		for (window = sdl_window_list; window != NULL; window = window->next)
-			sdlwindow_video_window_update_hi(machine(), window);
-//      profiler_mark(PROFILER_END);
-	}
-
-	// poll the joystick values here
-	sdlinput_poll(machine());
-	check_osd_inputs(machine());
-
-	if ((machine().debug_flags & DEBUG_FLAG_OSD_ENABLED) != 0)
-		debugwin_update_during_game(machine());
-}
 
 //============================================================
 //  add_primary_monitor
@@ -692,7 +665,12 @@ static void extract_video_config(running_machine &machine)
 	video_config.centerh       = options.centerh();
 	video_config.centerv       = options.centerv();
 	video_config.waitvsync     = options.wait_vsync();
-	video_config.syncrefresh   = machine.options().sync_refresh();	
+	video_config.syncrefresh   = options.sync_refresh();
+	if (!video_config.waitvsync && video_config.syncrefresh)
+	{
+		mame_printf_warning("-syncrefresh specified without -waitsync. Reverting to -nosyncrefresh\n");
+		video_config.syncrefresh = 0;
+	}
 
 	if (USE_OPENGL || SDLMAME_SDL2)
 	{
@@ -849,7 +827,7 @@ static void get_resolution(const char *defdata, const char *data, sdl_window_con
 		data = defdata;
 	}
 
-	if (sscanf(data, "%dx%dx%d@%lf", &config->width, &config->height, &config->depth, &config->refresh) < 2 && report_error)
+	if (sscanf(data, "%dx%dx%d@%d", &config->width, &config->height, &config->depth, &config->refresh) < 2 && report_error)
 		mame_printf_error("Illegal resolution value = %s\n", data);
 }
 

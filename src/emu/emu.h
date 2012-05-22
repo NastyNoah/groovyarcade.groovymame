@@ -149,9 +149,6 @@ private:
 // networking
 #include "network.h"
 
-// Switchres
-#include "switchres/switchres.h"
-
 // the running machine
 #include "machine.h"
 #include "driver.h"
