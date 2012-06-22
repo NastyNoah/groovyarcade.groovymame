@@ -41,6 +41,7 @@ OBJDIRS += \
 
 #-------------------------------------------------
 # emulator core objects
+# MKCHAMP - ADDED hiscore.o TO LIST TO COMPILE THE HISCORE PIECE
 #-------------------------------------------------
 
 EMUOBJS = \
@@ -71,12 +72,14 @@ EMUOBJS = \
 	$(EMUOBJ)/distate.o \
 	$(EMUOBJ)/drawgfx.o \
 	$(EMUOBJ)/driver.o \
+	$(EMUOBJ)/drivenum.o \
 	$(EMUOBJ)/emualloc.o \
 	$(EMUOBJ)/emucore.o \
 	$(EMUOBJ)/emuopts.o \
 	$(EMUOBJ)/emupal.o \
 	$(EMUOBJ)/fileio.o \
 	$(EMUOBJ)/hash.o \
+	$(EMUOBJ)/hiscore.o \
 	$(EMUOBJ)/image.o \
 	$(EMUOBJ)/info.o \
 	$(EMUOBJ)/input.o \
@@ -109,7 +112,6 @@ EMUOBJS = \
 	$(EMUOBJ)/uimenu.o \
 	$(EMUOBJ)/validity.o \
 	$(EMUOBJ)/video.o \
-	$(EMUOBJ)/watchdog.o \
 	$(EMUOBJ)/debug/debugcmd.o \
 	$(EMUOBJ)/debug/debugcon.o \
 	$(EMUOBJ)/debug/debugcpu.o \
@@ -133,7 +135,6 @@ EMUSOUNDOBJS = \
 	$(EMUOBJ)/sound/wavwrite.o \
 
 EMUAUDIOOBJS = \
-	$(EMUAUDIO)/generic.o \
 
 EMUDRIVEROBJS = \
 	$(EMUDRIVERS)/empty.o \
@@ -164,6 +165,7 @@ EMUMACHINEOBJS = \
 	$(EMUMACHINE)/adc1038.o		\
 	$(EMUMACHINE)/adc1213x.o	\
 	$(EMUMACHINE)/am53cf96.o	\
+	$(EMUMACHINE)/am9517a.o		\
 	$(EMUMACHINE)/amigafdc.o	\
 	$(EMUMACHINE)/at28c16.o		\
 	$(EMUMACHINE)/cdp1852.o		\
@@ -186,6 +188,7 @@ EMUMACHINEOBJS = \
 	$(EMUMACHINE)/i8243.o		\
 	$(EMUMACHINE)/i8251.o		\
 	$(EMUMACHINE)/i8255.o		\
+	$(EMUMACHINE)/i8279.o		\
 	$(EMUMACHINE)/i8355.o		\
 	$(EMUMACHINE)/idectrl.o		\
 	$(EMUMACHINE)/im6402.o		\
@@ -208,6 +211,7 @@ EMUMACHINEOBJS = \
 	$(EMUMACHINE)/mb3773.o		\
 	$(EMUMACHINE)/mb87078.o		\
 	$(EMUMACHINE)/mc146818.o	\
+	$(EMUMACHINE)/mc2661.o		\
 	$(EMUMACHINE)/mc6852.o		\
 	$(EMUMACHINE)/mc68901.o		\
 	$(EMUMACHINE)/mccs1850.o	\

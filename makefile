@@ -95,6 +95,9 @@ endif
 ifeq ($(firstword $(filter Darwin,$(UNAME))),Darwin)
 TARGETOS = macosx
 endif
+ifeq ($(firstword $(filter Haiku,$(UNAME))),Haiku)
+TARGETOS = haiku
+endif
 
 ifndef TARGETOS
 $(error Unable to detect TARGETOS from uname -a: $(UNAME))
@@ -150,7 +153,7 @@ endif
 #-------------------------------------------------
 
 # uncomment and specify prefix to be added to the name
-# PREFIX =
+PREFIX =groovy
 
 # uncomment and specify suffix to be added to the name
 # SUFFIX =
