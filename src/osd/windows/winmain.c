@@ -306,31 +306,30 @@ const options_entry windows_options::s_option_entries[] =
 	// performance options
 	{ NULL,                                           NULL,       OPTION_HEADER,     "WINDOWS PERFORMANCE OPTIONS" },
 	{ WINOPTION_PRIORITY "(-15-1)",                   "0",        OPTION_INTEGER,    "thread priority for the main game thread; range from -15 to 1" },
-	{ WINOPTION_MULTITHREADING ";mt",                 "0",        OPTION_BOOLEAN,    "enable multithreading; this enables rendering and blitting on a separate thread" },
+	{ WINOPTION_MULTITHREADING ";mt",                 "1",        OPTION_BOOLEAN,    "enable multithreading; this enables rendering and blitting on a separate thread" },
 	{ WINOPTION_NUMPROCESSORS ";np",                  "auto",     OPTION_STRING,	 "number of processors; this overrides the number the system reports" },
 	{ WINOPTION_PROFILE,                              "0",        OPTION_INTEGER,    "enable profiling, specifying the stack depth to track" },
 	{ WINOPTION_BENCH,                                "0",        OPTION_INTEGER,    "benchmark for the given number of emulated seconds; implies -video none -nosound -nothrottle" },
 
 	// video options
 	{ NULL,                                           NULL,       OPTION_HEADER,     "WINDOWS VIDEO OPTIONS" },
-	{ WINOPTION_VIDEO,                                "d3d",      OPTION_STRING,     "video output method: none, gdi, ddraw, or d3d" },
+	{ WINOPTION_VIDEO,                                "ddraw",      OPTION_STRING,     "video output method: none, gdi, ddraw, or d3d" },
 	{ WINOPTION_NUMSCREENS "(1-4)",                   "1",        OPTION_INTEGER,    "number of screens to create; usually, you want just one" },
 	{ WINOPTION_WINDOW ";w",                          "0",        OPTION_BOOLEAN,    "enable window mode; otherwise, full screen mode is assumed" },
 	{ WINOPTION_MAXIMIZE ";max",                      "1",        OPTION_BOOLEAN,    "default to maximized windows; otherwise, windows will be minimized" },
-	{ WINOPTION_KEEPASPECT ";ka",                     "1",        OPTION_BOOLEAN,    "constrain to the proper aspect ratio" },
+	{ WINOPTION_KEEPASPECT ";ka",                     "0",        OPTION_BOOLEAN,    "constrain to the proper aspect ratio" },
 	{ WINOPTION_PRESCALE,                             "1",        OPTION_INTEGER,    "scale screen rendering by this amount in software" },
-	{ WINOPTION_WAITVSYNC ";vs",                      "0",        OPTION_BOOLEAN,    "enable waiting for the start of VBLANK before flipping screens; reduces tearing effects" },
-	{ WINOPTION_SYNCREFRESH ";srf",                   "0",        OPTION_BOOLEAN,    "enable using the start of VBLANK for throttling instead of the game time" },
+	{ WINOPTION_WAITVSYNC ";vs",                      "1",        OPTION_BOOLEAN,    "enable waiting for the start of VBLANK before flipping screens; reduces tearing effects" },
 	{ WINOPTION_MENU,           		              "0",        OPTION_BOOLEAN,    "enable menu bar if available by UI implementation" },
 
 	// DirectDraw-specific options
 	{ NULL,                                           NULL,       OPTION_HEADER,     "DIRECTDRAW-SPECIFIC OPTIONS" },
-	{ WINOPTION_HWSTRETCH ";hws",                     "1",        OPTION_BOOLEAN,    "enable hardware stretching" },
+	{ WINOPTION_HWSTRETCH ";hws",                     "0",        OPTION_BOOLEAN,    "enable hardware stretching" },
 
 	// Direct3D-specific options
 	{ NULL,                                           NULL,       OPTION_HEADER,     "DIRECT3D-SPECIFIC OPTIONS" },
 	{ WINOPTION_D3DVERSION "(8-9)",                   "9",        OPTION_INTEGER,    "specify the preferred Direct3D version (8 or 9)" },
-	{ WINOPTION_FILTER ";d3dfilter;flt",              "1",        OPTION_BOOLEAN,    "enable bilinear filtering on screen output" },
+	{ WINOPTION_FILTER ";d3dfilter;flt",              "0",        OPTION_BOOLEAN,    "enable bilinear filtering on screen output" },  
 
 	// post-processing options
 	{ NULL,                                             		NULL,        OPTION_HEADER,     "DIRECT3D POST-PROCESSING OPTIONS" },

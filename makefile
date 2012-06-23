@@ -153,7 +153,7 @@ endif
 #-------------------------------------------------
 
 # uncomment and specify prefix to be added to the name
-PREFIX =groovy
+#PREFIX =groovy
 
 # uncomment and specify suffix to be added to the name
 # SUFFIX =
@@ -479,7 +479,7 @@ CCOMFLAGS += -O$(OPTIMIZE)
 
 # add the error warning flag
 ifndef NOWERROR
-CCOMFLAGS += -Werror
+CCOMFLAGS += #-Werror
 endif
 
 # if we are optimizing, include optimization options
@@ -554,7 +554,7 @@ LDFLAGS =
 ifneq ($(TARGETOS),macosx)
 ifneq ($(TARGETOS),os2)
 ifneq ($(TARGETOS),solaris)
-LDFLAGS = -Wl,--warn-common
+LDFLAGS = -Wl,--warn-common,-lXi
 endif
 endif
 endif
